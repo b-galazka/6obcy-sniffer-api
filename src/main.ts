@@ -16,7 +16,7 @@ async function bootstrap(): Promise<void> {
 
   await app.listen(appConfigService.getPort(), appConfigService.getIp());
 
-  logger.log(`Application is listening at ${await app.getUrl()}`, 'Bootstraping');
+  logger.log(`Application is listening at ${await app.getUrl()}`, 'Bootstrap');
 }
 
 bootstrap();
