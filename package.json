@@ -47,7 +47,8 @@
     "@types/supertest": "^2.0.8",
     "@types/ws": "^7.2.2",
     "husky": "^4.2.3",
-    "jest": "^24.9.0",
+    "jest": "^25.0.0",
+    "jest-createspyobj": "^1.2.2",
     "prettier": "^1.18.2",
     "supertest": "^4.0.2",
     "ts-jest": "25.2.0",
@@ -69,6 +70,9 @@
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^src(.*)$": "<rootDir>/$1"
+    }
   }
 }

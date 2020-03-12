@@ -6,20 +6,27 @@ import {
   WebSocketGateway
 } from '@nestjs/websockets';
 
-import { UsePipes, ValidationPipe } from '@nestjs/common';
+import { Logger, UseFilters, UsePipes } from '@nestjs/common';
 import WebSocket = require('ws');
 
-import { AppConfigService, SanitizeRequestBodyPipe } from 'src/modules/core';
+import {
+  AppConfigService,
+  SanitizeRequestBodyPipe,
+  WebSocketExceptionFilter
+} from 'src/modules/core';
+
+import { WebSocketValidationPipe } from 'src/modules/core/pipes/websocket-validation.pipe';
+import { BaseInputPayload } from '../../core/websockets-payloads/base-input.payload';
 import { ConversationService } from '../services/conversation/conversation.service';
 import { InputEvent } from './events/input-event.enum';
-import { MessagePayload } from './payloads/message.payload';
+import { MessageInputPayload } from './payloads/message-input.payload';
 
-// TODO: add exceptions filter
 @WebSocketGateway(AppConfigService.constructFromEnvFile().getWsPort())
 @UsePipes(
   new SanitizeRequestBodyPipe(),
-  new ValidationPipe({ forbidNonWhitelisted: true, whitelist: true })
+  new WebSocketValidationPipe({ forbidNonWhitelisted: true, whitelist: true })
 )
+@UseFilters(new WebSocketExceptionFilter(new Logger('ConversationGateway')))
 export class ConversationGateway
   implements OnGatewayConnection<WebSocket>, OnGatewayDisconnect<WebSocket> {
   // tslint:disable-next-line
@@ -31,20 +38,22 @@ export class ConversationGateway
   }
 
   @SubscribeMessage(InputEvent.conversationStart)
-  handleConversationStart(): void {
+  handleConversationStart(@MessageBody() payload: BaseInputPayload): void {
     console.log('conversation start');
     // TODO: start conversation if it is not already started
     // TODO: init conversation output events
   }
 
   @SubscribeMessage(InputEvent.message)
-  handleMessage(@MessageBody() payload: MessagePayload): void {
+  handleMessage(@MessageBody() payload: MessageInputPayload): void {
+    throw new Error('XD');
+
     console.log(payload);
     // TODO: send message to proper stranger
   }
 
   @SubscribeMessage(InputEvent.conversationStop)
-  handleConversationStop(): void {
+  handleConversationStop(@MessageBody() payload: BaseInputPayload): void {
     console.log('conversation stop');
     // TODO: stop conversation
   }
