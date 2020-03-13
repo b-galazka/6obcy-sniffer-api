@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 import { ConversationGateway } from './conversation.gateway';
 
+jest.mock('fs', () => ({ readFileSync: () => ({}) }));
+
 describe('ConversationGateway', () => {
   let gateway: ConversationGateway;
 

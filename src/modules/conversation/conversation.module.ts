@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 
-import { ConversationGateway } from './gateway/conversation.gateway';
-import { ConversationService } from './services/conversation/conversation.service';
+import { ConversationCoreModule } from './core';
+import { ConversationUiModule } from './ui';
 
 @Module({
-  providers: [ConversationGateway, ConversationService]
+  imports: [ConversationCoreModule, ConversationUiModule]
 })
 export class ConversationModule {}

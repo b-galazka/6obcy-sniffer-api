@@ -2,9 +2,9 @@ import { ArgumentsHost, Catch, ExceptionFilter, Logger } from '@nestjs/common';
 import { WsResponse } from '@nestjs/websockets';
 import WebSocket = require('ws');
 
-import { BaseWebSocketException } from '../../exceptions/base-websocket.exception';
-import { BaseInputPayload } from '../../websockets-payloads/base-input.payload';
-import { IExceptionOutputPayload } from './exception-output.payload';
+import { BaseWebSocketException } from '../exceptions/base-websocket.exception';
+import { BaseInputPayload } from '../payloads/base-input.payload';
+import { IExceptionOutputPayload } from '../payloads/exception-output.payload';
 
 @Catch()
 export class WebSocketExceptionFilter implements ExceptionFilter {
@@ -13,7 +13,7 @@ export class WebSocketExceptionFilter implements ExceptionFilter {
   catch(exception: Error, host: ArgumentsHost): void {
     const websocketsContext = host.switchToWs();
     const socket: WebSocket = websocketsContext.getClient();
-    const { eventId }: BaseInputPayload = websocketsContext.getData();
+    const eventId = (websocketsContext.getData() as BaseInputPayload)?.eventId;
     const { code, message, stack } = exception as BaseWebSocketException;
     const isKnownException = exception instanceof BaseWebSocketException;
 

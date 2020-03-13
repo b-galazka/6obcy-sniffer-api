@@ -11,14 +11,14 @@ import WebSocket = require('ws');
 
 import {
   AppConfigService,
+  BaseInputPayload,
   SanitizeRequestBodyPipe,
-  WebSocketExceptionFilter
-} from 'src/modules/core';
+  WebSocketExceptionFilter,
+  WebSocketValidationPipe
+} from '../../../core';
 
-import { WebSocketValidationPipe } from 'src/modules/core/pipes/websocket-validation.pipe';
-import { BaseInputPayload } from '../../core/websockets-payloads/base-input.payload';
-import { ConversationService } from '../services/conversation/conversation.service';
-import { InputEvent } from './events/input-event.enum';
+import { ConversationService } from '../../core';
+import { InputEvent } from './enums/input-event.enum';
 import { MessageInputPayload } from './payloads/message-input.payload';
 
 @WebSocketGateway(AppConfigService.constructFromEnvFile().getWsPort())
@@ -46,8 +46,6 @@ export class ConversationGateway
 
   @SubscribeMessage(InputEvent.message)
   handleMessage(@MessageBody() payload: MessageInputPayload): void {
-    throw new Error('XD');
-
     console.log(payload);
     // TODO: send message to proper stranger
   }

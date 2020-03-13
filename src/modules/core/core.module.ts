@@ -1,10 +1,9 @@
-import { Logger, Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { Module } from '@nestjs/common';
 
-import { AppConfigService } from './services/app-config.service';
+import { CoreSharedModule } from './shared/core-shared.module';
+import { CoreWebSocketsModule } from './websockets/core-websockets.module';
 
 @Module({
-  imports: [ConfigModule.forRoot()],
-  providers: [Logger, AppConfigService]
+  imports: [CoreSharedModule, CoreWebSocketsModule]
 })
 export class CoreModule {}
