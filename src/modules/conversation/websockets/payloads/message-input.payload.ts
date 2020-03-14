@@ -1,8 +1,8 @@
 import { Trim } from 'class-sanitizer';
 import { IsArray, IsEnum, IsString, MinLength } from 'class-validator';
 
-import { BaseInputPayload } from '../../../../core';
-import { Stranger } from '../../../core';
+import { BaseInputPayload } from '../../../core';
+import { Stranger } from '../../core';
 
 export class MessageInputPayload extends BaseInputPayload {
   @IsArray()

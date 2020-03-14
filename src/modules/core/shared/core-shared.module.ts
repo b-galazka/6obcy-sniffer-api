@@ -7,6 +7,7 @@ import { AppConfigService } from './services/app-config.service';
 
 @Module({
   imports: [ConfigModule.forRoot()],
-  providers: [Logger, AppConfigService, { provide: APP_PIPE, useClass: SanitizeRequestBodyPipe }]
+  providers: [Logger, AppConfigService, { provide: APP_PIPE, useClass: SanitizeRequestBodyPipe }],
+  exports: [Logger, AppConfigService]
 })
 export class CoreSharedModule {}

@@ -10,5 +10,7 @@
   "tslint.packageManager": "yarn",
   "tslint.autoFixOnSave": true,
   "tslint.run": "onType",
-  "eslint.validate": ["typescript"]
+  "eslint.validate": ["typescript"],
+  // TODO: find a way to add imports aliases like @core etc
+  "typescript.preferences.importModuleSpecifier": "relative"
 }

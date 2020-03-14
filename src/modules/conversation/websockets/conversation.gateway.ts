@@ -15,9 +15,9 @@ import {
   SanitizeRequestBodyPipe,
   WebSocketExceptionFilter,
   WebSocketValidationPipe
-} from '../../../core';
+} from '../../core';
 
-import { ConversationService } from '../../core';
+import { ConversationService, ConversationServiceFactory } from '../core';
 import { InputEvent } from './enums/input-event.enum';
 import { MessageInputPayload } from './payloads/message-input.payload';
 
@@ -29,11 +29,14 @@ import { MessageInputPayload } from './payloads/message-input.payload';
 @UseFilters(new WebSocketExceptionFilter(new Logger('ConversationGateway')))
 export class ConversationGateway
   implements OnGatewayConnection<WebSocket>, OnGatewayDisconnect<WebSocket> {
-  // tslint:disable-next-line
-  private readonly openedExternalConnections = new Map<WebSocket, ConversationService>();
+  private readonly initializedConversations = new Map<WebSocket, ConversationService>();
+
+  constructor(private readonly conversationServiceFactory: ConversationServiceFactory) {}
 
   handleConnection(socket: WebSocket): void {
-    // TODO: create instance of conversation service and store it in openedExternalConnections
+    const conversationService = this.conversationServiceFactory.constructService();
+
+    this.initializedConversations.set(socket, conversationService);
     // TODO: initialize connection with 6obcy API
   }
 
@@ -57,7 +60,9 @@ export class ConversationGateway
   }
 
   handleDisconnect(socket: WebSocket): void {
+    console.log('disconnect');
     // TODO: destroy connection with 6obcy API
-    // TODO: remove instance of conversationService from openedExternalConnections
+
+    this.initializedConversations.delete(socket);
   }
 }

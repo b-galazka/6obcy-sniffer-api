@@ -1,9 +1,8 @@
 import { Module } from '@nestjs/common';
 
-import { ConversationCoreModule } from './core';
-import { ConversationUiModule } from './ui';
+import { ConversationWebSocketsModule } from './websockets';
 
 @Module({
-  imports: [ConversationCoreModule, ConversationUiModule]
+  imports: [ConversationWebSocketsModule]
 })
 export class ConversationModule {}

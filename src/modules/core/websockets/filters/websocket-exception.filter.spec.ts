@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { createSpyObj } from 'jest-createspyobj';
+
 import { WebSocketExceptionFilter } from './websocket-exception.filter';
 
 describe('WebSocketExceptionFilter', () => {

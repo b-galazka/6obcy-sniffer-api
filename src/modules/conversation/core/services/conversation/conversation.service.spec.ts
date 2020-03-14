@@ -1,16 +1,16 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { createSpyObj } from 'jest-createspyobj';
 
+import { StrangerService } from '../stranger/stranger.service';
 import { ConversationService } from './conversation.service';
 
 describe('ConversationService', () => {
   let service: ConversationService;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [ConversationService]
-    }).compile();
-
-    service = module.get<ConversationService>(ConversationService);
+  beforeEach(() => {
+    service = new ConversationService(
+      createSpyObj(StrangerService.prototype.constructor),
+      createSpyObj(StrangerService.prototype.constructor)
+    );
   });
 
   it('should be defined', () => {
