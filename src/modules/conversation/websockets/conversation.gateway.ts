@@ -10,7 +10,6 @@ import { Logger, UseFilters, UsePipes } from '@nestjs/common';
 import WebSocket = require('ws');
 
 import {
-  AppConfigService,
   BaseInputPayload,
   SanitizeRequestBodyPipe,
   WebSocketExceptionFilter,
@@ -21,7 +20,7 @@ import { ConversationService, ConversationServiceFactory } from '../core';
 import { InputEvent } from './enums/input-event.enum';
 import { MessageInputPayload } from './payloads/message-input.payload';
 
-@WebSocketGateway(AppConfigService.constructFromEnvFile().getWsPort())
+@WebSocketGateway()
 @UsePipes(
   new SanitizeRequestBodyPipe(),
   new WebSocketValidationPipe({ forbidNonWhitelisted: true, whitelist: true })

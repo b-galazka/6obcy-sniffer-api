@@ -1,9 +1,8 @@
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { WsAdapter } from '@nestjs/platform-ws';
 
 import { AppModule } from './app.module';
-import { AppConfigService } from './modules/core';
+import { AppConfigService, WebSocketAdapter } from './modules/core';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
@@ -12,7 +11,7 @@ async function bootstrap(): Promise<void> {
   const appConfigService = app.get(AppConfigService);
 
   app.enableCors({ origin: appConfigService.getAllowedDomains() });
-  app.useWebSocketAdapter(new WsAdapter());
+  app.useWebSocketAdapter(new WebSocketAdapter(appConfigService.getWsPort()));
 
   await app.listen(appConfigService.getPort(), appConfigService.getIp());
 

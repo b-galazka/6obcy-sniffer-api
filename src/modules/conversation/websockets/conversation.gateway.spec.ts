@@ -4,8 +4,6 @@ import { createSpyObj } from 'jest-createspyobj';
 import { ConversationServiceFactory } from '../core';
 import { ConversationGateway } from './conversation.gateway';
 
-jest.mock('fs', () => ({ readFileSync: () => ({}) }));
-
 describe('ConversationGateway', () => {
   let gateway: ConversationGateway;
 

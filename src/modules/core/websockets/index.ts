@@ -4,3 +4,4 @@ export * from './exceptions/base-websocket.exception';
 export * from './filters/websocket-exception.filter';
 export * from './payloads/base-input.payload';
 export * from './pipes/websocket-validation.pipe';
+export * from './adapters/websocket.adapter';
