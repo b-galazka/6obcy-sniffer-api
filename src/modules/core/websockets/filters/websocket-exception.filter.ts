@@ -15,18 +15,18 @@ export class WebSocketExceptionFilter implements ExceptionFilter {
     const socket: WebSocket = websocketsContext.getClient();
     const eventId = (websocketsContext.getData() as BaseInputPayload)?.eventId;
     const { code, message, stack } = exception as BaseWebSocketException;
-    const isKnownException = exception instanceof BaseWebSocketException;
-
-    if (!isKnownException) {
-      this.logger.error(message, stack);
-    }
 
     const event: WsResponse<IExceptionOutputPayload> = {
       event: 'exception',
-      data: isKnownException
-        ? { code, message, eventId }
-        : { code: 500, message: 'Internal server error', eventId }
+      data:
+        exception instanceof BaseWebSocketException
+          ? { code, message, eventId }
+          : { code: 500, message: 'Internal server error', eventId }
     };
+
+    if (event.data.code === 500) {
+      this.logger.error(message, stack);
+    }
 
     socket.send(JSON.stringify(event));
   }

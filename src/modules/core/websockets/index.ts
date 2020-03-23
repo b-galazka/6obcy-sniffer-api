@@ -5,3 +5,4 @@ export * from './filters/websocket-exception.filter';
 export * from './payloads/base-input.payload';
 export * from './pipes/websocket-validation.pipe';
 export * from './adapters/websocket.adapter';
+export * from './services/websocket-connection.factory';

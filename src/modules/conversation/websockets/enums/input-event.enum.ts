@@ -1,5 +1,6 @@
 export enum InputEvent {
+  initialization = 'initialization',
   conversationStart = 'conversationStart',
-  conversationStop = 'conversationStop',
+  conversationEnd = 'conversationEnd',
   message = 'message'
 }

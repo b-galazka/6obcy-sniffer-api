@@ -8,4 +8,10 @@ export class ConversationService {
     private readonly firstStrangerService: StrangerService,
     private readonly secondStrangerService: StrangerService
   ) {}
+
+  initConnection(): void {
+    this.firstStrangerService
+      .initConnection()
+      .subscribe(console.log, console.log, () => console.log('complete'));
+  }
 }

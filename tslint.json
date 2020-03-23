@@ -7,7 +7,6 @@
   "rules": {
     "quotemark": [true, "single", "avoid-escape"],
     "ordered-imports": [true],
-    "max-line-length": [true, 100],
     "interface-name": [true, "always-prefix"],
     "arrow-parens": [true, "ban-single-arg-parens"],
     "object-literal-sort-keys": false,
@@ -27,7 +26,6 @@
     "no-console": [true, "debug", "info", "time", "timeEnd", "trace"],
     "no-empty": false,
     "no-inferrable-types": [true, "ignore-params"],
-    "no-non-null-assertion": true,
     "no-redundant-jsdoc": true,
     "no-switch-case-fall-through": true,
     "no-var-requires": false,

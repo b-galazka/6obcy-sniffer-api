@@ -1,4 +1,5 @@
 import {
+  ConnectedSocket,
   MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
@@ -34,16 +35,24 @@ export class ConversationGateway
 
   handleConnection(socket: WebSocket): void {
     const conversationService = this.conversationServiceFactory.constructService();
-
     this.initializedConversations.set(socket, conversationService);
-    // TODO: initialize connection with 6obcy API
+  }
+
+  @SubscribeMessage(InputEvent.initialization)
+  handleInitialization(
+    @MessageBody() payload: BaseInputPayload,
+    @ConnectedSocket() socket: WebSocket
+  ): void {
+    const conversationService = this.initializedConversations.get(socket)!;
+
+    conversationService.initConnection();
+    // TODO: set all events
   }
 
   @SubscribeMessage(InputEvent.conversationStart)
   handleConversationStart(@MessageBody() payload: BaseInputPayload): void {
     console.log('conversation start');
     // TODO: start conversation if it is not already started
-    // TODO: init conversation output events
   }
 
   @SubscribeMessage(InputEvent.message)
@@ -52,7 +61,7 @@ export class ConversationGateway
     // TODO: send message to proper stranger
   }
 
-  @SubscribeMessage(InputEvent.conversationStop)
+  @SubscribeMessage(InputEvent.conversationEnd)
   handleConversationStop(@MessageBody() payload: BaseInputPayload): void {
     console.log('conversation stop');
     // TODO: stop conversation

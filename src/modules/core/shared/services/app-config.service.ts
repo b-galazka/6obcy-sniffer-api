@@ -20,4 +20,8 @@ export class AppConfigService {
   getAllowedDomains(): string[] {
     return this.configService.get<string>('ALLOWED_DOMAINS')?.split(',') || [];
   }
+
+  getWsApiUrl(): string {
+    return this.configService.get<string>('WS_API_URL') || '';
+  }
 }
