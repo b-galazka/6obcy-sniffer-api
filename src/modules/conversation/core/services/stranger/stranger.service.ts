@@ -69,7 +69,7 @@ export class StrangerService {
     return !!this.conversationKey;
   }
 
-  initConnection(): Observable<StrangerEventUnion | void> {
+  initConnection(): Observable<StrangerEventUnion> {
     if (this.isConnectionInitialized) {
       throw new ConnectionAlreadyInitializedException();
     }
@@ -97,7 +97,7 @@ export class StrangerService {
     }
   }
 
-  private initWebSocketMessagesHandling(): Observable<StrangerEventUnion | void> {
+  private initWebSocketMessagesHandling(): Observable<StrangerEventUnion> {
     return merge(
       this.initInitialIncomingMessageHandling(),
       this.initIncomingMessagesMapping().pipe(
@@ -106,7 +106,7 @@ export class StrangerService {
     ).pipe(catchError(error => this.handleConnectionError(error)));
   }
 
-  private initInitialIncomingMessageHandling(): Observable<InitializationSuccessEvent | void> {
+  private initInitialIncomingMessageHandling(): Observable<InitializationSuccessEvent> {
     return merge(this.initInitialIncomingMessageMapping(), this.initHeartbeat());
   }
 
@@ -121,14 +121,14 @@ export class StrangerService {
     return new InitializationSuccessEvent();
   }
 
-  private initHeartbeat(): Observable<void> {
+  private initHeartbeat(): Observable<never> {
     return this.webSocketMessages$!.pipe(
       take(1),
       switchMap(({ pingInterval, pingTimeout }: IInitialIncomingMessage) =>
         this.initPingInterval(pingInterval, pingTimeout)
       ),
       filter(() => false)
-    ) as Observable<void>;
+    ) as Observable<never>;
   }
 
   private initPingInterval(pingInterval: number, pingTimeout: number): Observable<void> {
@@ -193,7 +193,7 @@ export class StrangerService {
     }
   }
 
-  private handleConnectionError(error: Error): Observable<void> {
+  private handleConnectionError(error: Error): Observable<never> {
     this.logger.error(error.message, error.stack, 'Stranger connection');
     this.webSocket$!.complete();
     this.makeConnectionDestroyCleanUp();
@@ -201,7 +201,7 @@ export class StrangerService {
     return throwError(new UnknownConnectionError());
   }
 
-  private initConnectionDestroyHandling(): Observable<void> {
+  private initConnectionDestroyHandling(): Observable<never> {
     return of(null).pipe(
       tap(() => this.makeConnectionDestroyCleanUp()),
       filter(() => !this.isConnectionDestroyedByClient),
