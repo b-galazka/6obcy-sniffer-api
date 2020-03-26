@@ -19,6 +19,8 @@ import { WebSocketSubject } from 'rxjs/webSocket';
 import { AppConfigService, WebSocketConnectionFactory } from '../../../../core';
 import { ConnectionAlreadyInitializedException } from '../../exceptions/connection-already-initialized.exception';
 import { ConnectionNotInitializedException } from '../../exceptions/connection-not-initialized.exception';
+import { ConversationAlreadyStartedException } from '../../exceptions/conversation-already-started.exception';
+import { ConversationNotStartedException } from '../../exceptions/conversation-not-started.exception';
 import { UnknownConnectionError } from '../../exceptions/unknown-connection-error.exception';
 import { ConversationEndEvent } from './events/events/conversation-end.event';
 import { ConversationStartEvent } from './events/events/conversation-start.event';
@@ -30,18 +32,28 @@ import { StrangerTypingStartEvent } from './events/events/stranger-typing-start.
 import { StrangerTypingStopEvent } from './events/events/stranger-typing-stop.event';
 import { UsersCountEvent } from './events/events/users-count.event';
 import { StrangerEventUnion } from './events/stranger-event-union.type';
+import { StrangerEvent } from './events/stranger-event.enum';
 import { IncomingMessageUnion } from './incoming-messages/incoming-message-union.type';
 import { IncomingMessage } from './incoming-messages/incoming-message.enum';
+import { IConversationStartIncomingMessage } from './incoming-messages/messages/conversation-start-incoming-message.interface';
 import { IInitialIncomingMessage } from './incoming-messages/messages/initial-incoming-message.interface';
+import { ConversationEndOutcomingMessage } from './outcoming-messages/messages/conversation-end-outcoming-message';
+import { ConversationStartOutcomingMessage } from './outcoming-messages/messages/conversation-start-outcoming-message';
+import { MessageOutcomingMessage } from './outcoming-messages/messages/message-outcoming-message';
+import { TypingOutcomingMessage } from './outcoming-messages/messages/typing-outcoming-message';
+import { OutcomingMessageUnion } from './outcoming-messages/outcoming-message-union.type';
 
-// TODO: rename events from StrangerMessageEvent to StrangerMessageStrangerEvent etc?
-// TODO: rename incoming messages from RandomTopicIncomingMessage to RandomTopicIncomingStrangerMessage etc?
+// TODO: create namespaces for events, incoming messages and outcoming messages
 
 @Injectable()
 export class StrangerService {
   private webSocket$: WebSocketSubject<string> | null;
   private webSocketMessages$: Observable<object | string> | null;
+
   private isConnectionDestroyedByClient = false;
+  private isConversationEndedByClient = false;
+  private conversationKey: string | null;
+  private outcomingSocketMessageId = 0;
 
   constructor(
     private readonly webSocketConnectionFactory: WebSocketConnectionFactory,
@@ -51,6 +63,10 @@ export class StrangerService {
 
   get isConnectionInitialized(): boolean {
     return !!this.webSocket$;
+  }
+
+  get isConversationStarted(): boolean {
+    return !!this.conversationKey;
   }
 
   initConnection(): Observable<StrangerEventUnion | void> {
@@ -84,7 +100,9 @@ export class StrangerService {
   private initWebSocketMessagesHandling(): Observable<StrangerEventUnion | void> {
     return merge(
       this.initInitialIncomingMessageHandling(),
-      this.initIncomingMessagesMapping()
+      this.initIncomingMessagesMapping().pipe(
+        tap(event => this.deleteConversationKeyOnConversationEndEvent(event))
+      )
     ).pipe(catchError(error => this.handleConnectionError(error)));
   }
 
@@ -121,39 +139,36 @@ export class StrangerService {
     this.webSocket$!.next('2');
 
     return this.webSocketMessages$!.pipe(
-      filter(message => this.filterPongMessage(message)),
+      filter(message => this.isPongMessage(message)),
       take(1),
       mapTo(undefined)
     );
   }
 
-  private filterPongMessage(message: object | string): boolean {
+  private isPongMessage(message: object | string): boolean {
     return message === '3';
   }
 
   private initIncomingMessagesMapping(): Observable<StrangerEventUnion> {
     return this.webSocketMessages$!.pipe(
       skip(1),
-      filter(message => this.filterObjectMessage(message)),
+      filter(message => this.isObjectMessage(message)),
       map(message => this.mapIncomingMessage(message as IncomingMessageUnion)),
       filter(message => !!message)
     ) as Observable<StrangerEventUnion>;
   }
 
-  private filterObjectMessage(message: object | string): boolean {
+  private isObjectMessage(message: object | string): boolean {
     return message !== null && typeof message === 'object';
   }
 
   private mapIncomingMessage(message: IncomingMessageUnion): StrangerEventUnion | null {
     switch (message.ev_name) {
-      case IncomingMessage.conversationStart:
-        return new ConversationStartEvent();
-
       case IncomingMessage.strangerMessage:
         return new StrangerMessageEvent({ message: message.ev_data.msg });
 
       case IncomingMessage.conversationEnd:
-        return new ConversationEndEvent();
+        return this.isConversationEndedByClient ? null : new ConversationEndEvent();
 
       case IncomingMessage.randomTopic:
         return new RandomTopicEvent({ topic: message.ev_data.topic });
@@ -172,20 +187,104 @@ export class StrangerService {
     }
   }
 
+  private deleteConversationKeyOnConversationEndEvent({ event }: StrangerEventUnion): void {
+    if (event === StrangerEvent.conversationEnd) {
+      this.conversationKey = null;
+    }
+  }
+
   private handleConnectionError(error: Error): Observable<void> {
     this.logger.error(error.message, error.stack, 'Stranger connection');
     this.webSocket$!.complete();
-    this.cleanUpAfterConnectionDestroy();
+    this.makeConnectionDestroyCleanUp();
 
     return throwError(new UnknownConnectionError());
   }
 
   private initConnectionDestroyHandling(): Observable<void> {
     return of(null).pipe(
-      tap(() => this.cleanUpAfterConnectionDestroy()),
+      tap(() => this.makeConnectionDestroyCleanUp()),
       filter(() => !this.isConnectionDestroyedByClient),
       switchMapTo(throwError(new UnknownConnectionError()))
     );
+  }
+
+  startConversation(): Observable<ConversationStartEvent> {
+    if (this.isConversationStarted) {
+      throw new ConversationAlreadyStartedException();
+    }
+
+    this.isConversationEndedByClient = false;
+
+    this.sendSocketMessage(new ConversationStartOutcomingMessage());
+
+    return this.webSocketMessages$!.pipe(
+      filter(message => this.isObjectMessage(message)),
+      filter(message => this.isConversationStartIncomingMessage(message as IncomingMessageUnion)),
+      tap(message => this.setConversationKey(message as IConversationStartIncomingMessage)),
+      mapTo(new ConversationStartEvent()),
+      take(1)
+    );
+  }
+
+  private isConversationStartIncomingMessage(message: IncomingMessageUnion): boolean {
+    return message.ev_name === IncomingMessage.conversationStart;
+  }
+
+  private setConversationKey({ ev_data }: IConversationStartIncomingMessage): void {
+    this.conversationKey = ev_data.ckey;
+  }
+
+  notifyAboutTypingStart(): void {
+    this.notifyAboutTypingStatusChange(true);
+  }
+
+  notifyAboutTypingStop(): void {
+    this.notifyAboutTypingStatusChange(false);
+  }
+
+  private notifyAboutTypingStatusChange(isTyping: boolean): void {
+    if (!this.isConversationStarted) {
+      throw new ConversationNotStartedException();
+    }
+
+    this.sendSocketMessage(new TypingOutcomingMessage(this.conversationKey!, isTyping));
+  }
+
+  sendMessage(message: string): void {
+    if (!this.isConversationStarted) {
+      throw new ConversationNotStartedException();
+    }
+
+    this.sendSocketMessage(new MessageOutcomingMessage(this.conversationKey!, message));
+  }
+
+  endConversation(): Observable<ConversationEndEvent> {
+    if (!this.isConversationStarted) {
+      throw new ConversationNotStartedException();
+    }
+
+    this.isConversationEndedByClient = true;
+    this.conversationKey = null;
+
+    this.sendSocketMessage(new ConversationEndOutcomingMessage(this.conversationKey!));
+
+    return this.webSocketMessages$!.pipe(
+      filter(message => this.isObjectMessage(message)),
+      filter(message => this.isConversationEndIncomingMessage(message as IncomingMessageUnion)),
+      mapTo(new ConversationEndEvent()),
+      take(1)
+    );
+  }
+
+  private isConversationEndIncomingMessage(message: IncomingMessageUnion): boolean {
+    return message.ev_name === IncomingMessage.conversationEnd;
+  }
+
+  private sendSocketMessage(message: OutcomingMessageUnion): void {
+    const payload = `4${JSON.stringify({ ...message, ceid: ++this.outcomingSocketMessageId })}`;
+
+    this.webSocket$!.next(payload);
   }
 
   destroyConnection(): void {
@@ -194,13 +293,15 @@ export class StrangerService {
     }
 
     this.webSocket$!.complete();
-    this.cleanUpAfterConnectionDestroy();
+    this.makeConnectionDestroyCleanUp();
 
     this.isConnectionDestroyedByClient = true;
   }
 
-  private cleanUpAfterConnectionDestroy(): void {
+  private makeConnectionDestroyCleanUp(): void {
     this.webSocket$ = null;
     this.webSocketMessages$ = null;
+    this.conversationKey = null;
+    this.outcomingSocketMessageId = 0;
   }
 }
