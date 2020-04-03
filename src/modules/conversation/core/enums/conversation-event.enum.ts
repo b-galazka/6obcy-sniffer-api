@@ -1,4 +1,4 @@
-export enum StrangerEvent {
+export enum ConversationEvent {
   conversationStart = 'conversationStart',
   strangerMessage = 'strangerMessage',
   conversationEnd = 'conversationEnd',
@@ -7,5 +7,5 @@ export enum StrangerEvent {
   usersCount = 'usersCount',
   strangerTypingStart = 'strangerTypingStart',
   strangerTypingStop = 'strangerTypingStop',
-  initializationSuccess = 'initializationSuccess'
+  connectionInitSuccess = 'connectionInitSuccess'
 }

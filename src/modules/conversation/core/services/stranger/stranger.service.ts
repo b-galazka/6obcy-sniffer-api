@@ -17,22 +17,22 @@ import { concat, interval, merge, Observable, of, throwError } from 'rxjs';
 import { WebSocketSubject } from 'rxjs/webSocket';
 
 import { AppConfigService, WebSocketConnectionFactory } from '../../../../core';
+import { ConversationEvent } from '../../enums/conversation-event.enum';
 import { ConnectionAlreadyInitializedException } from '../../exceptions/connection-already-initialized.exception';
 import { ConnectionNotInitializedException } from '../../exceptions/connection-not-initialized.exception';
 import { ConversationAlreadyStartedException } from '../../exceptions/conversation-already-started.exception';
 import { ConversationNotStartedException } from '../../exceptions/conversation-not-started.exception';
 import { UnknownConnectionError } from '../../exceptions/unknown-connection-error.exception';
-import { ConversationEndEvent } from './events/events/conversation-end.event';
-import { ConversationStartEvent } from './events/events/conversation-start.event';
-import { InitializationSuccessEvent } from './events/events/initialization-success.event';
-import { ProhibitedMessageEvent } from './events/events/prohibited-message.event';
-import { RandomTopicEvent } from './events/events/random-topic.event';
-import { StrangerMessageEvent } from './events/events/stranger-message.event';
-import { StrangerTypingStartEvent } from './events/events/stranger-typing-start.event';
-import { StrangerTypingStopEvent } from './events/events/stranger-typing-stop.event';
-import { UsersCountEvent } from './events/events/users-count.event';
+import { ConnectionInitSuccessStrangerEvent } from './events/events/connection-init-success-stranger-event';
+import { ConversationEndStrangerEvent } from './events/events/conversation-end-stranger-event';
+import { ConversationStartStrangerEvent } from './events/events/conversation-start-stranger-event';
+import { ProhibitedMessageStrangerEvent } from './events/events/prohibited-message-stranger-event';
+import { RandomTopicStrangerEvent } from './events/events/random-topic-stranger-event';
+import { StrangerMessageStrangerEvent } from './events/events/stranger-message-stranger-event';
+import { StrangerTypingStartStrangerEvent } from './events/events/stranger-typing-start-stranger-event';
+import { StrangerTypingStopStrangerEvent } from './events/events/stranger-typing-stop-stranger-event';
+import { UsersCountStrangerEvent } from './events/events/users-count-stranger-event';
 import { StrangerEventUnion } from './events/stranger-event-union.type';
-import { StrangerEvent } from './events/stranger-event.enum';
 import { IncomingMessageUnion } from './incoming-messages/incoming-message-union.type';
 import { IncomingMessage } from './incoming-messages/incoming-message.enum';
 import { IConversationStartIncomingMessage } from './incoming-messages/messages/conversation-start-incoming-message.interface';
@@ -43,7 +43,7 @@ import { MessageOutcomingMessage } from './outcoming-messages/messages/message-o
 import { TypingOutcomingMessage } from './outcoming-messages/messages/typing-outcoming-message';
 import { OutcomingMessageUnion } from './outcoming-messages/outcoming-message-union.type';
 
-// TODO: create namespaces for events, incoming messages and outcoming messages
+// TODO: EventPayload -> EventData?
 
 @Injectable()
 export class StrangerService {
@@ -106,19 +106,19 @@ export class StrangerService {
     ).pipe(catchError(error => this.handleConnectionError(error)));
   }
 
-  private initInitialIncomingMessageHandling(): Observable<InitializationSuccessEvent> {
+  private initInitialIncomingMessageHandling(): Observable<ConnectionInitSuccessStrangerEvent> {
     return merge(this.initInitialIncomingMessageMapping(), this.initHeartbeat());
   }
 
-  private initInitialIncomingMessageMapping(): Observable<InitializationSuccessEvent> {
+  private initInitialIncomingMessageMapping(): Observable<ConnectionInitSuccessStrangerEvent> {
     return this.webSocketMessages$!.pipe(
       take(1),
       map(() => this.mapInitialIncomingMessage())
     );
   }
 
-  private mapInitialIncomingMessage(): InitializationSuccessEvent {
-    return new InitializationSuccessEvent();
+  private mapInitialIncomingMessage(): ConnectionInitSuccessStrangerEvent {
+    return new ConnectionInitSuccessStrangerEvent();
   }
 
   private initHeartbeat(): Observable<never> {
@@ -165,22 +165,24 @@ export class StrangerService {
   private mapIncomingMessage(message: IncomingMessageUnion): StrangerEventUnion | null {
     switch (message.ev_name) {
       case IncomingMessage.strangerMessage:
-        return new StrangerMessageEvent({ message: message.ev_data.msg });
+        return new StrangerMessageStrangerEvent({ message: message.ev_data.msg });
 
       case IncomingMessage.conversationEnd:
-        return this.isConversationEndedByClient ? null : new ConversationEndEvent();
+        return this.isConversationEndedByClient ? null : new ConversationEndStrangerEvent();
 
       case IncomingMessage.randomTopic:
-        return new RandomTopicEvent({ topic: message.ev_data.topic });
+        return new RandomTopicStrangerEvent({ topic: message.ev_data.topic });
 
       case IncomingMessage.prohibitedMessage:
-        return new ProhibitedMessageEvent({ message: message.ev_data.msg });
+        return new ProhibitedMessageStrangerEvent({ message: message.ev_data.msg });
 
       case IncomingMessage.usersCount:
-        return new UsersCountEvent({ usersCount: message.ev_data });
+        return new UsersCountStrangerEvent({ usersCount: message.ev_data });
 
       case IncomingMessage.strangerTyping:
-        return message.ev_data ? new StrangerTypingStartEvent() : new StrangerTypingStopEvent();
+        return message.ev_data
+          ? new StrangerTypingStartStrangerEvent()
+          : new StrangerTypingStopStrangerEvent();
 
       default:
         return null;
@@ -188,7 +190,7 @@ export class StrangerService {
   }
 
   private deleteConversationKeyOnConversationEndEvent({ event }: StrangerEventUnion): void {
-    if (event === StrangerEvent.conversationEnd) {
+    if (event === ConversationEvent.conversationEnd) {
       this.conversationKey = null;
     }
   }
@@ -209,7 +211,7 @@ export class StrangerService {
     );
   }
 
-  startConversation(): Observable<ConversationStartEvent> {
+  startConversation(): Observable<ConversationStartStrangerEvent> {
     if (this.isConversationStarted) {
       throw new ConversationAlreadyStartedException();
     }
@@ -222,7 +224,7 @@ export class StrangerService {
       filter(message => this.isObjectMessage(message)),
       filter(message => this.isConversationStartIncomingMessage(message as IncomingMessageUnion)),
       tap(message => this.setConversationKey(message as IConversationStartIncomingMessage)),
-      mapTo(new ConversationStartEvent()),
+      mapTo(new ConversationStartStrangerEvent()),
       take(1)
     );
   }
@@ -259,7 +261,7 @@ export class StrangerService {
     this.sendSocketMessage(new MessageOutcomingMessage(this.conversationKey!, message));
   }
 
-  endConversation(): Observable<ConversationEndEvent> {
+  endConversation(): Observable<ConversationEndStrangerEvent> {
     if (!this.isConversationStarted) {
       throw new ConversationNotStartedException();
     }
@@ -272,7 +274,7 @@ export class StrangerService {
     return this.webSocketMessages$!.pipe(
       filter(message => this.isObjectMessage(message)),
       filter(message => this.isConversationEndIncomingMessage(message as IncomingMessageUnion)),
-      mapTo(new ConversationEndEvent()),
+      mapTo(new ConversationEndStrangerEvent()),
       take(1)
     );
   }
