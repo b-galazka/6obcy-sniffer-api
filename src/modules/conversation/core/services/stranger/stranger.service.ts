@@ -4,6 +4,7 @@ import {
   map,
   mapTo,
   mergeMap,
+  share,
   skip,
   switchMap,
   switchMapTo,
@@ -16,7 +17,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { concat, interval, merge, Observable, of, throwError } from 'rxjs';
 import { WebSocketSubject } from 'rxjs/webSocket';
 
-import { AppConfigService, tryToParseStrToObj, WebSocketConnectionFactory } from '../../../../core';
+import {
+  AppConfigService,
+  isObject,
+  tryToParseStrToObj,
+  WebSocketConnectionFactory
+} from '../../../../core';
 import { ConversationEvent } from '../../enums/conversation-event.enum';
 import { ConnectionAlreadyInitializedException } from '../../exceptions/connection-already-initialized.exception';
 import { ConnectionNotInitializedException } from '../../exceptions/connection-not-initialized.exception';
@@ -45,19 +51,6 @@ import { OutcomingMessageUnion } from './outcoming-messages/outcoming-message-un
 
 @Injectable()
 export class StrangerService {
-  constructor(
-    private readonly webSocketConnectionFactory: WebSocketConnectionFactory,
-    private readonly logger: Logger,
-    private readonly appConfigService: AppConfigService
-  ) {}
-
-  get isConnectionInitialized(): boolean {
-    return !!this.webSocket$;
-  }
-
-  get isConversationStarted(): boolean {
-    return !!this.conversationKey;
-  }
   private webSocket$: WebSocketSubject<string> | null;
   private webSocketMessages$: Observable<object | string> | null;
   private webSocketObjectMessages$: Observable<object> | null;
@@ -66,6 +59,20 @@ export class StrangerService {
   private isConversationEndedByClient = false;
   private conversationKey: string | null;
   private outcomingSocketMessageId = 0;
+
+  get isConnectionInitialized(): boolean {
+    return !!this.webSocket$;
+  }
+
+  get isConversationStarted(): boolean {
+    return !!this.conversationKey;
+  }
+
+  constructor(
+    private readonly webSocketConnectionFactory: WebSocketConnectionFactory,
+    private readonly logger: Logger,
+    private readonly appConfigService: AppConfigService
+  ) {}
 
   initConnection(): Observable<StrangerEventUnion> {
     if (this.isConnectionInitialized) {
@@ -80,15 +87,13 @@ export class StrangerService {
 
     this.webSocketMessages$ = this.webSocket$.pipe(map(tryToParseStrToObj));
 
-    this.webSocketObjectMessages$ = this.webSocketMessages$.pipe(
-      filter(message => this.isObjectMessage(message))
-    ) as Observable<object>;
+    this.webSocketObjectMessages$ = this.webSocketMessages$.pipe(filter(isObject)) as Observable<
+      object
+    >;
 
-    return concat(this.initWebSocketMessagesHandling(), this.initConnectionDestroyHandling());
-  }
-
-  private isObjectMessage(message: object | string): boolean {
-    return message !== null && typeof message === 'object';
+    return concat(this.initWebSocketMessagesHandling(), this.initConnectionDestroyHandling()).pipe(
+      share()
+    );
   }
 
   private initWebSocketMessagesHandling(): Observable<StrangerEventUnion> {

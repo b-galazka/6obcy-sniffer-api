@@ -1,8 +1,10 @@
+import { isObject } from './is-object';
+
 export function tryToParseStrToObj(str: string): object | string {
   try {
-    const parsedObj = JSON.parse(str.slice(str.indexOf('{'), str.lastIndexOf('}') + 1));
+    const parsedValue = JSON.parse(str.slice(str.indexOf('{'), str.lastIndexOf('}') + 1));
 
-    return typeof parsedObj && parsedObj === 'object' ? parsedObj : str;
+    return isObject(parsedValue) ? parsedValue : str;
   } catch (err) {
     return str;
   }

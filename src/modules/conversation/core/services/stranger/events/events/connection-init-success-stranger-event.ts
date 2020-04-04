@@ -3,4 +3,5 @@ import { IConversationEvent } from '../../../../interfaces/conversation-event.in
 
 export class ConnectionInitSuccessStrangerEvent implements IConversationEvent<void> {
   readonly event = ConversationEvent.connectionInitSuccess;
+  readonly data: void;
 }

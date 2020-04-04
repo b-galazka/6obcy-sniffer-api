@@ -1,12 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { forkJoin, merge, Observable, Subject } from 'rxjs';
-import { filter, map, mapTo, takeUntil, tap } from 'rxjs/operators';
+import { concat, forkJoin, merge, Observable, Subject } from 'rxjs';
+import { filter, map, mapTo, take, takeUntil, tap } from 'rxjs/operators';
 
 import { ConversationEvent } from '../../enums/conversation-event.enum';
 import { Stranger } from '../../enums/stranger.enum';
 import { StrangerEventUnion } from '../stranger/events/stranger-event-union.type';
 import { StrangerService } from '../stranger/stranger.service';
 import { ConversationEventUnion } from './events/conversation-event-union.type';
+import { ConnectionInitSuccessEvent } from './events/events/connection-init-success-event';
 import { ConversationEndEvent } from './events/events/conversation-end-event';
 import { ConversationStartEvent } from './events/events/conversation-start-event';
 import { ProhibitedMessageEvent } from './events/events/prohibited-message-event';
@@ -29,12 +30,15 @@ export class ConversationService {
     const firstConversationEvents$ = this.initStrangerConnection(Stranger.first);
     const secondConversationEvents$ = this.initStrangerConnection(Stranger.second);
 
-    return merge(
-      this.filterUsersCountEvent(firstConversationEvents$),
-      this.filterEventsOtherThanUsersCount(firstConversationEvents$),
-      this.filterEventsOtherThanUsersCount(secondConversationEvents$),
-      this.initEventsForwarding(firstConversationEvents$),
-      this.initEventsForwarding(secondConversationEvents$)
+    return concat(
+      this.handleConnectionInitSuccessEvent(firstConversationEvents$, secondConversationEvents$),
+      merge(
+        this.filterUsersCountEvent(firstConversationEvents$),
+        this.filterEventsOtherThanUsersCount(firstConversationEvents$),
+        this.filterEventsOtherThanUsersCount(secondConversationEvents$),
+        this.initEventsForwarding(firstConversationEvents$),
+        this.initEventsForwarding(secondConversationEvents$)
+      )
     );
   }
 
@@ -76,6 +80,16 @@ export class ConversationService {
       default:
         return null;
     }
+  }
+
+  private handleConnectionInitSuccessEvent(
+    firstConversationEvents$: Observable<ConversationEventUnion>,
+    secondConversationEvents$: Observable<ConversationEventUnion>
+  ): Observable<ConnectionInitSuccessEvent> {
+    return forkJoin([
+      firstConversationEvents$.pipe(take(1)),
+      secondConversationEvents$.pipe(take(1))
+    ]).pipe(mapTo(new ConnectionInitSuccessEvent()));
   }
 
   private filterUsersCountEvent(
