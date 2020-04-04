@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { forkJoin, merge, Observable, of } from 'rxjs';
-import { filter, map, mapTo } from 'rxjs/operators';
+import { forkJoin, merge, Observable, Subject } from 'rxjs';
+import { filter, map, mapTo, takeUntil, tap } from 'rxjs/operators';
 
 import { ConversationEvent } from '../../enums/conversation-event.enum';
 import { Stranger } from '../../enums/stranger.enum';
@@ -18,6 +18,8 @@ import { UsersCountEvent } from './events/events/users-count-event';
 
 @Injectable()
 export class ConversationService {
+  private readonly conversationEnd$ = new Subject<void>();
+
   constructor(
     private readonly firstStrangerService: StrangerService,
     private readonly secondStrangerService: StrangerService
@@ -46,18 +48,18 @@ export class ConversationService {
   }
 
   private mapStrangerEventToConversationEvent(
-    doer: Stranger,
+    notifier: Stranger,
     event: StrangerEventUnion
   ): ConversationEventUnion | null {
     switch (event.event) {
       case ConversationEvent.strangerMessage:
-        return new StrangerMessageEvent({ ...event.data, doer });
+        return new StrangerMessageEvent({ ...event.data, notifier });
 
       case ConversationEvent.conversationEnd:
-        return new ConversationEndEvent({ doer });
+        return new ConversationEndEvent({ notifier });
 
       case ConversationEvent.randomTopic:
-        return new RandomTopicEvent({ ...event.data, doer });
+        return new RandomTopicEvent({ ...event.data, notifier });
 
       case ConversationEvent.prohibitedMessage:
         return new ProhibitedMessageEvent(event.data);
@@ -66,10 +68,10 @@ export class ConversationService {
         return new UsersCountEvent(event.data);
 
       case ConversationEvent.strangerTypingStart:
-        return new StrangerTypingStartEvent({ doer });
+        return new StrangerTypingStartEvent({ notifier });
 
       case ConversationEvent.strangerTypingStop:
-        return new StrangerTypingStopEvent({ doer });
+        return new StrangerTypingStopEvent({ notifier });
 
       default:
         return null;
@@ -90,15 +92,127 @@ export class ConversationService {
     return conversationEvents$.pipe(filter(event => !this.isUsersCountEvent(event)));
   }
 
-  private isUsersCountEvent(event: ConversationEventUnion): boolean {
-    return event.event === ConversationEvent.usersCount;
+  private isUsersCountEvent({ event }: ConversationEventUnion): boolean {
+    return event === ConversationEvent.usersCount;
   }
 
   private initEventsForwarding(
     conversationEvents$: Observable<ConversationEventUnion>
   ): Observable<never> {
-    // TODO: implement
-    return of();
+    return merge(
+      this.initStrangerTypingStartEventsForwarding(conversationEvents$),
+      this.initStrangerTypingStopEventsForwarding(conversationEvents$),
+      this.initStrangerMessageEventsForwarding(conversationEvents$),
+      this.initEndConversationEventsForwarding(conversationEvents$)
+    ).pipe(filter(() => false)) as Observable<never>;
+  }
+
+  private initStrangerTypingStartEventsForwarding(
+    conversationEvents$: Observable<ConversationEventUnion>
+  ): Observable<StrangerTypingStartEvent> {
+    return conversationEvents$.pipe(
+      filter(event => this.isStrangerTypingStartEvent(event)),
+      tap((event: StrangerTypingStartEvent) => this.forwardStrangerTypingStartEvent(event))
+    );
+  }
+
+  private isStrangerTypingStartEvent({ event }: ConversationEventUnion): boolean {
+    return event === ConversationEvent.strangerTypingStart;
+  }
+
+  private forwardStrangerTypingStartEvent(event: StrangerTypingStartEvent): void {
+    const eventReceiverStrangerService = this.getEventReceiverStrangerService(
+      event.data.notifier!
+    )!;
+
+    if (eventReceiverStrangerService.isConversationStarted) {
+      eventReceiverStrangerService.notifyAboutTypingStart();
+    }
+  }
+
+  private initStrangerTypingStopEventsForwarding(
+    conversationEvents$: Observable<ConversationEventUnion>
+  ): Observable<StrangerTypingStopEvent> {
+    return conversationEvents$.pipe(
+      filter(event => this.isStrangerTypingStopEvent(event)),
+      tap((event: StrangerTypingStopEvent) => this.forwardStrangerTypingStopEvent(event))
+    );
+  }
+
+  private isStrangerTypingStopEvent({ event }: ConversationEventUnion): boolean {
+    return event === ConversationEvent.strangerTypingStop;
+  }
+
+  private forwardStrangerTypingStopEvent(event: StrangerTypingStopEvent): void {
+    const eventReceiverStrangerService = this.getEventReceiverStrangerService(
+      event.data.notifier!
+    )!;
+
+    if (eventReceiverStrangerService.isConversationStarted) {
+      eventReceiverStrangerService.notifyAboutTypingStop();
+    }
+  }
+
+  private initStrangerMessageEventsForwarding(
+    conversationEvents$: Observable<ConversationEventUnion>
+  ): Observable<StrangerMessageEvent> {
+    return conversationEvents$.pipe(
+      filter(event => this.isStrangerMessageEvent(event)),
+      tap((event: StrangerMessageEvent) => this.forwardStrangerMessageEvent(event))
+    );
+  }
+
+  private isStrangerMessageEvent({ event }: ConversationEventUnion): boolean {
+    return event === ConversationEvent.strangerMessage;
+  }
+
+  private forwardStrangerMessageEvent(event: StrangerMessageEvent): void {
+    const eventReceiverStrangerService = this.getEventReceiverStrangerService(
+      event.data.notifier!
+    )!;
+
+    eventReceiverStrangerService
+      .waitForConversationStart()
+      .pipe(takeUntil(this.conversationEnd$))
+      .subscribe(() => eventReceiverStrangerService.sendMessage(event.data.message));
+  }
+
+  private initEndConversationEventsForwarding(
+    conversationEvents$: Observable<ConversationEventUnion>
+  ): Observable<ConversationEndEvent> {
+    return conversationEvents$.pipe(
+      filter(event => this.isConversationEndEvent(event)),
+      tap((event: ConversationEndEvent) => this.forwardConversationEndEvent(event))
+    );
+  }
+
+  private isConversationEndEvent({ event }: ConversationEventUnion): boolean {
+    return event === ConversationEvent.conversationEnd;
+  }
+
+  private forwardConversationEndEvent(event: ConversationEndEvent): void {
+    this.conversationEnd$.next();
+
+    const eventReceiverStrangerService = this.getEventReceiverStrangerService(
+      event.data.notifier!
+    )!;
+
+    if (eventReceiverStrangerService.isConversationStarted) {
+      eventReceiverStrangerService.endConversation();
+    }
+  }
+
+  private getEventReceiverStrangerService(eventNotifier: Stranger): StrangerService | null {
+    switch (eventNotifier) {
+      case Stranger.first:
+        return this.secondStrangerService;
+
+      case Stranger.second:
+        return this.firstStrangerService;
+
+      default:
+        return null;
+    }
   }
 
   startConversation(): Observable<ConversationStartEvent> {
@@ -106,16 +220,6 @@ export class ConversationService {
       this.firstStrangerService.startConversation(),
       this.secondStrangerService.startConversation()
     ]).pipe(mapTo(new ConversationStartEvent()));
-  }
-
-  // tslint:disable-next-line
-  private notifyAboutTypingStart(receiver: Stranger): void {
-    this.getStrangerService(receiver)!.notifyAboutTypingStart();
-  }
-
-  // tslint:disable-next-line
-  private notifyAboutTypingStop(receiver: Stranger): void {
-    this.getStrangerService(receiver)!.notifyAboutTypingStop();
   }
 
   sendMessage(receiver: Stranger, message: string): void {
@@ -139,10 +243,14 @@ export class ConversationService {
     return forkJoin([
       this.firstStrangerService.endConversation(),
       this.secondStrangerService.endConversation()
-    ]).pipe(mapTo(new ConversationEndEvent({ doer: null })));
+    ]).pipe(
+      tap(() => this.conversationEnd$.next()),
+      mapTo(new ConversationEndEvent({ notifier: null }))
+    );
   }
 
   destroyConnection(): void {
+    this.conversationEnd$.next();
     this.firstStrangerService.destroyConnection();
     this.secondStrangerService.destroyConnection();
   }

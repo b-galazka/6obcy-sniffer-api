@@ -21,6 +21,8 @@ import { ConversationService, ConversationServiceFactory } from '../core';
 import { InputEvent } from './enums/input-event.enum';
 import { MessageInputPayload } from './payloads/message-input.payload';
 
+// TODO: implement ping-pong
+
 @WebSocketGateway()
 @UsePipes(
   new SanitizeRequestBodyPipe(),

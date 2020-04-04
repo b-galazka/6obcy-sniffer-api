@@ -16,7 +16,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { concat, interval, merge, Observable, of, throwError } from 'rxjs';
 import { WebSocketSubject } from 'rxjs/webSocket';
 
-import { AppConfigService, WebSocketConnectionFactory } from '../../../../core';
+import { AppConfigService, tryToParseStrToObj, WebSocketConnectionFactory } from '../../../../core';
 import { ConversationEvent } from '../../enums/conversation-event.enum';
 import { ConnectionAlreadyInitializedException } from '../../exceptions/connection-already-initialized.exception';
 import { ConnectionNotInitializedException } from '../../exceptions/connection-not-initialized.exception';
@@ -43,18 +43,8 @@ import { MessageOutcomingMessage } from './outcoming-messages/messages/message-o
 import { TypingOutcomingMessage } from './outcoming-messages/messages/typing-outcoming-message';
 import { OutcomingMessageUnion } from './outcoming-messages/outcoming-message-union.type';
 
-// TODO: EventPayload -> EventData?
-
 @Injectable()
 export class StrangerService {
-  private webSocket$: WebSocketSubject<string> | null;
-  private webSocketMessages$: Observable<object | string> | null;
-
-  private isConnectionDestroyedByClient = false;
-  private isConversationEndedByClient = false;
-  private conversationKey: string | null;
-  private outcomingSocketMessageId = 0;
-
   constructor(
     private readonly webSocketConnectionFactory: WebSocketConnectionFactory,
     private readonly logger: Logger,
@@ -68,6 +58,14 @@ export class StrangerService {
   get isConversationStarted(): boolean {
     return !!this.conversationKey;
   }
+  private webSocket$: WebSocketSubject<string> | null;
+  private webSocketMessages$: Observable<object | string> | null;
+  private webSocketObjectMessages$: Observable<object> | null;
+
+  private isConnectionDestroyedByClient = false;
+  private isConversationEndedByClient = false;
+  private conversationKey: string | null;
+  private outcomingSocketMessageId = 0;
 
   initConnection(): Observable<StrangerEventUnion> {
     if (this.isConnectionInitialized) {
@@ -80,21 +78,17 @@ export class StrangerService {
       this.appConfigService.getWsApiUrl()
     );
 
-    this.webSocketMessages$ = this.webSocket$.pipe(
-      map(message => this.parseIncomingSocketMessage(message))
-    );
+    this.webSocketMessages$ = this.webSocket$.pipe(map(tryToParseStrToObj));
+
+    this.webSocketObjectMessages$ = this.webSocketMessages$.pipe(
+      filter(message => this.isObjectMessage(message))
+    ) as Observable<object>;
 
     return concat(this.initWebSocketMessagesHandling(), this.initConnectionDestroyHandling());
   }
 
-  private parseIncomingSocketMessage(message: string): object | string {
-    try {
-      const parsedMessage = JSON.parse(message.slice(message.indexOf('{')));
-
-      return typeof parsedMessage === 'object' ? parsedMessage : message;
-    } catch (err) {
-      return message;
-    }
+  private isObjectMessage(message: object | string): boolean {
+    return message !== null && typeof message === 'object';
   }
 
   private initWebSocketMessagesHandling(): Observable<StrangerEventUnion> {
@@ -111,10 +105,7 @@ export class StrangerService {
   }
 
   private initInitialIncomingMessageMapping(): Observable<ConnectionInitSuccessStrangerEvent> {
-    return this.webSocketMessages$!.pipe(
-      take(1),
-      map(() => this.mapInitialIncomingMessage())
-    );
+    return this.webSocketMessages$!.pipe(take(1), mapTo(this.mapInitialIncomingMessage()));
   }
 
   private mapInitialIncomingMessage(): ConnectionInitSuccessStrangerEvent {
@@ -150,16 +141,11 @@ export class StrangerService {
   }
 
   private initIncomingMessagesMapping(): Observable<StrangerEventUnion> {
-    return this.webSocketMessages$!.pipe(
+    return this.webSocketObjectMessages$!.pipe(
       skip(1),
-      filter(message => this.isObjectMessage(message)),
       map(message => this.mapIncomingMessage(message as IncomingMessageUnion)),
       filter(message => !!message)
     ) as Observable<StrangerEventUnion>;
-  }
-
-  private isObjectMessage(message: object | string): boolean {
-    return message !== null && typeof message === 'object';
   }
 
   private mapIncomingMessage(message: IncomingMessageUnion): StrangerEventUnion | null {
@@ -220,12 +206,9 @@ export class StrangerService {
 
     this.sendSocketMessage(new ConversationStartOutcomingMessage());
 
-    return this.webSocketMessages$!.pipe(
-      filter(message => this.isObjectMessage(message)),
-      filter(message => this.isConversationStartIncomingMessage(message as IncomingMessageUnion)),
+    return this.filterFirstConversationStartIncomingMessage().pipe(
       tap(message => this.setConversationKey(message as IConversationStartIncomingMessage)),
-      mapTo(new ConversationStartStrangerEvent()),
-      take(1)
+      mapTo(new ConversationStartStrangerEvent())
     );
   }
 
@@ -235,6 +218,21 @@ export class StrangerService {
 
   private setConversationKey({ ev_data }: IConversationStartIncomingMessage): void {
     this.conversationKey = ev_data.ckey;
+  }
+
+  waitForConversationStart(): Observable<void> {
+    return this.isConversationStarted
+      ? of(undefined)
+      : this.filterFirstConversationStartIncomingMessage().pipe(mapTo(undefined));
+  }
+
+  private filterFirstConversationStartIncomingMessage(): Observable<
+    IConversationStartIncomingMessage
+  > {
+    return this.webSocketObjectMessages$!.pipe(
+      filter(message => this.isConversationStartIncomingMessage(message as IncomingMessageUnion)),
+      take(1)
+    ) as Observable<IConversationStartIncomingMessage>;
   }
 
   notifyAboutTypingStart(): void {
@@ -271,8 +269,7 @@ export class StrangerService {
 
     this.sendSocketMessage(new ConversationEndOutcomingMessage(this.conversationKey!));
 
-    return this.webSocketMessages$!.pipe(
-      filter(message => this.isObjectMessage(message)),
+    return this.webSocketObjectMessages$!.pipe(
       filter(message => this.isConversationEndIncomingMessage(message as IncomingMessageUnion)),
       mapTo(new ConversationEndStrangerEvent()),
       take(1)
@@ -303,6 +300,7 @@ export class StrangerService {
   private makeConnectionDestroyCleanUp(): void {
     this.webSocket$ = null;
     this.webSocketMessages$ = null;
+    this.webSocketObjectMessages$ = null;
     this.conversationKey = null;
     this.outcomingSocketMessageId = 0;
   }
