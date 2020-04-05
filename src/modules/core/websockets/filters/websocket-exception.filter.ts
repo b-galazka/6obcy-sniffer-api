@@ -3,6 +3,7 @@ import { WsResponse } from '@nestjs/websockets';
 import WebSocket = require('ws');
 
 import { BaseWebSocketException } from '../exceptions/base-websocket.exception';
+import { InternalServerErrorWebSocketException } from '../exceptions/internal-server-error-websocket.exception';
 import { IExceptionOutputPayload } from '../payloads/exception-output.payload';
 
 @Catch()
@@ -12,14 +13,11 @@ export class WebSocketExceptionFilter implements ExceptionFilter {
   catch(exception: Error, host: ArgumentsHost): void {
     const websocketsContext = host.switchToWs();
     const socket: WebSocket = websocketsContext.getClient();
-    const { code, message, stack } = exception as BaseWebSocketException;
+    const { message, stack } = exception as BaseWebSocketException;
 
     const event: WsResponse<IExceptionOutputPayload> = {
       event: 'exception',
-      data:
-        exception instanceof BaseWebSocketException
-          ? { code, message }
-          : { code: 500, message: 'Internal server error' }
+      data: this.getExceptionOutputPayload(exception)
     };
 
     if (event.data.code === 500) {
@@ -27,5 +25,14 @@ export class WebSocketExceptionFilter implements ExceptionFilter {
     }
 
     socket.send(JSON.stringify(event));
+  }
+
+  private getExceptionOutputPayload(exception: Error): IExceptionOutputPayload {
+    const { code, message } =
+      exception instanceof BaseWebSocketException
+        ? exception
+        : new InternalServerErrorWebSocketException();
+
+    return { code, message };
   }
 }

@@ -7,7 +7,7 @@ import {
   WebSocketGateway
 } from '@nestjs/websockets';
 
-import { Logger, UseFilters, UsePipes } from '@nestjs/common';
+import { Logger, UseFilters, UseInterceptors, UsePipes } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import WebSocket = require('ws');
 
@@ -24,17 +24,19 @@ import {
   ConversationServiceFactory,
   ConversationStartEvent
 } from '../core';
+
 import { InputEvent } from './enums/input-event.enum';
+import { ConversationExceptionInterceptor } from './interceptors/conversation-exception.interceptor';
 import { MessageInputPayload } from './payloads/message-input.payload';
 
 // TODO: implement ping-pong
-// TODO: map converastion exceptions to websocket exceptions
 
 @WebSocketGateway()
 @UsePipes(
   new SanitizeRequestBodyPipe(),
   new WebSocketValidationPipe({ forbidNonWhitelisted: true, whitelist: true })
 )
+@UseInterceptors(new ConversationExceptionInterceptor())
 @UseFilters(new WebSocketExceptionFilter(new Logger('ConversationGateway')))
 export class ConversationGateway
   implements OnGatewayConnection<WebSocket>, OnGatewayDisconnect<WebSocket> {

@@ -5,3 +5,8 @@ export * from './services/conversation/conversation-service.factory';
 export * from './services/conversation/events/conversation-event-union.type';
 export * from './services/conversation/events/events/conversation-start-event';
 export * from './services/conversation/events/events/conversation-end-event';
+export * from './exceptions/connection-already-initialized.exception';
+export * from './exceptions/connection-not-initialized.exception';
+export * from './exceptions/conversation-already-started.exception';
+export * from './exceptions/conversation-not-started.exception';
+export * from './exceptions/unknown-connection-error.exception';
