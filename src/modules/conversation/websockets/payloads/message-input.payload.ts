@@ -1,10 +1,9 @@
 import { Trim } from 'class-sanitizer';
 import { IsArray, IsEnum, IsString, MinLength } from 'class-validator';
 
-import { BaseInputPayload } from '../../../core';
 import { Stranger } from '../../core';
 
-export class MessageInputPayload extends BaseInputPayload {
+export class MessageInputPayload {
   @IsArray()
   @IsEnum(Stranger, { each: true })
   messageReceivers: Stranger[];

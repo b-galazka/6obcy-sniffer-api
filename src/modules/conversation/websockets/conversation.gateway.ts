@@ -29,7 +29,6 @@ import { MessageInputPayload } from './payloads/message-input.payload';
 
 // TODO: implement ping-pong
 // TODO: map converastion exceptions to websocket exceptions
-// TODO: remove eventId in exceptions handling
 
 @WebSocketGateway()
 @UsePipes(
