@@ -204,6 +204,10 @@ export class StrangerService {
   }
 
   startConversation(): Observable<ConversationStartStrangerEvent> {
+    if (!this.isConnectionInitialized) {
+      throw new ConnectionNotInitializedException();
+    }
+
     if (this.isConversationStarted) {
       throw new ConversationAlreadyStartedException();
     }
@@ -250,6 +254,10 @@ export class StrangerService {
   }
 
   private notifyAboutTypingStatusChange(isTyping: boolean): void {
+    if (!this.isConnectionInitialized) {
+      throw new ConnectionNotInitializedException();
+    }
+
     if (!this.isConversationStarted) {
       throw new ConversationNotStartedException();
     }
@@ -258,6 +266,10 @@ export class StrangerService {
   }
 
   sendMessage(message: string): void {
+    if (!this.isConnectionInitialized) {
+      throw new ConnectionNotInitializedException();
+    }
+
     if (!this.isConversationStarted) {
       throw new ConversationNotStartedException();
     }
@@ -266,6 +278,10 @@ export class StrangerService {
   }
 
   endConversation(): Observable<ConversationEndStrangerEvent> {
+    if (!this.isConnectionInitialized) {
+      throw new ConnectionNotInitializedException();
+    }
+
     if (!this.isConversationStarted) {
       throw new ConversationNotStartedException();
     }
