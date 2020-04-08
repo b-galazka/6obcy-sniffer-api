@@ -2,11 +2,7 @@ import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nes
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
-import {
-  BaseWebSocketException,
-  ForbiddenWebSocketException,
-  InternalServerErrorWebSocketException
-} from '../../../core';
+import { ForbiddenWebSocketException } from '../../../core';
 
 import {
   ConnectionAlreadyInitializedException,
@@ -24,7 +20,7 @@ export class ConversationExceptionInterceptor implements NestInterceptor {
       .pipe(catchError(exception => throwError(this.mapExceptionToWebSocketException(exception))));
   }
 
-  private mapExceptionToWebSocketException(exception: Error): BaseWebSocketException {
+  private mapExceptionToWebSocketException(exception: Error): Error {
     const forbiddenExceptions = [
       ConnectionNotInitializedException,
       ConnectionAlreadyInitializedException,
@@ -40,6 +36,6 @@ export class ConversationExceptionInterceptor implements NestInterceptor {
       return new ForbiddenWebSocketException(exception.message);
     }
 
-    return new InternalServerErrorWebSocketException();
+    return exception;
   }
 }

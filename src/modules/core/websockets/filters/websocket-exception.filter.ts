@@ -13,14 +13,14 @@ export class WebSocketExceptionFilter implements ExceptionFilter {
   catch(exception: Error, host: ArgumentsHost): void {
     const websocketsContext = host.switchToWs();
     const socket: WebSocket = websocketsContext.getClient();
-    const { message, stack } = exception as BaseWebSocketException;
+    const { message, stack, code } = exception as BaseWebSocketException;
 
     const event: WsResponse<IExceptionOutputPayload> = {
       event: 'exception',
       data: this.getExceptionOutputPayload(exception)
     };
 
-    if (event.data.code === 500) {
+    if (!code) {
       this.logger.error(message, stack);
     }
 
