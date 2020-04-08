@@ -53,18 +53,25 @@ export class ConversationService {
     notifier: Stranger,
     event: StrangerEventUnion
   ): ConversationEventUnion | null {
+    const isConversationWithReceiverStarted = this.getEventReceiverStrangerService(notifier)!
+      .isConversationStarted;
+
     switch (event.event) {
       case ConversationEvent.connectionInitSuccess:
         return new ConnectionInitSuccessEvent();
 
       case ConversationEvent.strangerMessage:
-        return new StrangerMessageEvent({ ...event.data, notifier });
+        return isConversationWithReceiverStarted
+          ? new StrangerMessageEvent({ ...event.data, notifier })
+          : null;
 
       case ConversationEvent.conversationEnd:
         return new ConversationEndEvent({ notifier });
 
       case ConversationEvent.randomTopic:
-        return new RandomTopicEvent({ ...event.data, notifier });
+        return isConversationWithReceiverStarted
+          ? new RandomTopicEvent({ ...event.data, notifier })
+          : null;
 
       case ConversationEvent.prohibitedMessage:
         return new ProhibitedMessageEvent(event.data);
@@ -73,10 +80,12 @@ export class ConversationService {
         return new UsersCountEvent(event.data);
 
       case ConversationEvent.strangerTypingStart:
-        return new StrangerTypingStartEvent({ notifier });
+        return isConversationWithReceiverStarted
+          ? new StrangerTypingStartEvent({ notifier })
+          : null;
 
       case ConversationEvent.strangerTypingStop:
-        return new StrangerTypingStopEvent({ notifier });
+        return isConversationWithReceiverStarted ? new StrangerTypingStopEvent({ notifier }) : null;
 
       default:
         return null;
