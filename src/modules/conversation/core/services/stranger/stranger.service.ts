@@ -91,7 +91,6 @@ export class StrangerService {
       object
     >;
 
-    // TODO: fix multicasting
     return concat(this.initWebSocketMessagesHandling(), this.initConnectionDestroyHandling()).pipe(
       share()
     );

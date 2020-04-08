@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { concat, forkJoin, merge, Observable, Subject } from 'rxjs';
-import { filter, map, mapTo, take, takeUntil, tap } from 'rxjs/operators';
+import { forkJoin, merge, Observable, Subject } from 'rxjs';
+import { filter, map, mapTo, skip, take, takeUntil, tap } from 'rxjs/operators';
 
 import { ConversationEvent } from '../../enums/conversation-event.enum';
 import { Stranger } from '../../enums/stranger.enum';
@@ -30,15 +30,13 @@ export class ConversationService {
     const firstConversationEvents$ = this.initStrangerConnection(Stranger.first);
     const secondConversationEvents$ = this.initStrangerConnection(Stranger.second);
 
-    return concat(
+    return merge(
       this.handleConnectionInitSuccessEvent(firstConversationEvents$, secondConversationEvents$),
-      merge(
-        this.filterUsersCountEvent(firstConversationEvents$),
-        this.filterEventsOtherThanUsersCount(firstConversationEvents$),
-        this.filterEventsOtherThanUsersCount(secondConversationEvents$),
-        this.initEventsForwarding(firstConversationEvents$),
-        this.initEventsForwarding(secondConversationEvents$)
-      )
+      this.filterStatisticsEvents(firstConversationEvents$),
+      this.filterConversationEvents(firstConversationEvents$),
+      this.filterConversationEvents(secondConversationEvents$),
+      this.initEventsForwarding(firstConversationEvents$),
+      this.initEventsForwarding(secondConversationEvents$)
     );
   }
 
@@ -56,6 +54,9 @@ export class ConversationService {
     event: StrangerEventUnion
   ): ConversationEventUnion | null {
     switch (event.event) {
+      case ConversationEvent.connectionInitSuccess:
+        return new ConnectionInitSuccessEvent();
+
       case ConversationEvent.strangerMessage:
         return new StrangerMessageEvent({ ...event.data, notifier });
 
@@ -92,7 +93,7 @@ export class ConversationService {
     ]).pipe(mapTo(new ConnectionInitSuccessEvent()));
   }
 
-  private filterUsersCountEvent(
+  private filterStatisticsEvents(
     conversationEvents$: Observable<ConversationEventUnion>
   ): Observable<UsersCountEvent> {
     return conversationEvents$.pipe(filter(event => this.isUsersCountEvent(event))) as Observable<
@@ -100,10 +101,13 @@ export class ConversationService {
     >;
   }
 
-  private filterEventsOtherThanUsersCount(
+  private filterConversationEvents(
     conversationEvents$: Observable<ConversationEventUnion>
   ): Observable<ConversationEventUnion> {
-    return conversationEvents$.pipe(filter(event => !this.isUsersCountEvent(event)));
+    return conversationEvents$.pipe(
+      skip(1),
+      filter(event => !this.isUsersCountEvent(event))
+    );
   }
 
   private isUsersCountEvent({ event }: ConversationEventUnion): boolean {
