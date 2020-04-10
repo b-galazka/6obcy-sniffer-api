@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { forkJoin, merge, Observable, Subject } from 'rxjs';
-import { filter, map, mapTo, skip, take, takeUntil, tap } from 'rxjs/operators';
+import { forkJoin, merge, Observable, Subject, throwError } from 'rxjs';
+import { catchError, filter, map, mapTo, skip, take, takeUntil, tap } from 'rxjs/operators';
 
 import { ConversationEvent } from '../../enums/conversation-event.enum';
 import { Stranger } from '../../enums/stranger.enum';
+import { UnknownConnectionError } from '../../exceptions/unknown-connection-error.exception';
 import { StrangerEventUnion } from '../stranger/events/stranger-event-union.type';
 import { StrangerService } from '../stranger/stranger.service';
 import { ConversationEventUnion } from './events/conversation-event-union.type';
@@ -45,8 +46,18 @@ export class ConversationService {
       .initConnection()
       .pipe(
         map(event => this.mapStrangerEventToConversationEvent(stranger, event)),
-        filter(event => !!event)
+        filter(event => !!event),
+        catchError((event: UnknownConnectionError) => {
+          this.destroyEventReceiverConnection(stranger);
+          return throwError(event);
+        })
       ) as Observable<ConversationEventUnion>;
+  }
+
+  private destroyEventReceiverConnection(eventNotifier: Stranger): void {
+    const eventReceiverStrangerService = this.getEventReceiverStrangerService(eventNotifier)!;
+
+    eventReceiverStrangerService.destroyConnection();
   }
 
   private mapStrangerEventToConversationEvent(
@@ -278,7 +289,13 @@ export class ConversationService {
 
   destroyConnection(): void {
     this.conversationEnd$.next();
-    this.firstStrangerService.destroyConnection();
-    this.secondStrangerService.destroyConnection();
+
+    if (this.firstStrangerService.isConnectionInitialized) {
+      this.firstStrangerService.destroyConnection();
+    }
+
+    if (this.secondStrangerService.isConnectionInitialized) {
+      this.secondStrangerService.destroyConnection();
+    }
   }
 }
