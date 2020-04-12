@@ -12,6 +12,8 @@ import { Observable } from 'rxjs';
 import WebSocket = require('ws');
 
 import {
+  AppConfigService,
+  BaseGateway,
   SanitizeRequestBodyPipe,
   WebSocketExceptionFilter,
   WebSocketValidationPipe
@@ -25,11 +27,9 @@ import {
   ConversationStartEvent
 } from '../core';
 
-import { InputEvent } from './enums/input-event.enum';
+import { ConversationInputEvent } from './enums/conversation-input-event.enum';
 import { ConversationExceptionInterceptor } from './interceptors/conversation-exception.interceptor';
 import { MessageInputPayload } from './payloads/message-input.payload';
-
-// TODO: implement ping-pong
 
 @WebSocketGateway()
 @UsePipes(
@@ -38,24 +38,32 @@ import { MessageInputPayload } from './payloads/message-input.payload';
 )
 @UseInterceptors(new ConversationExceptionInterceptor())
 @UseFilters(new WebSocketExceptionFilter(new Logger('ConversationGateway')))
-export class ConversationGateway
+export class ConversationGateway extends BaseGateway
   implements OnGatewayConnection<WebSocket>, OnGatewayDisconnect<WebSocket> {
   private readonly initializedConversations = new Map<WebSocket, ConversationService>();
 
-  constructor(private readonly conversationServiceFactory: ConversationServiceFactory) {}
+  constructor(
+    private readonly conversationServiceFactory: ConversationServiceFactory,
+    appConfigService: AppConfigService
+  ) {
+    super(appConfigService);
+  }
 
   handleConnection(socket: WebSocket): void {
+    super.handleConnection(socket);
+
     const conversationService = this.conversationServiceFactory.constructService();
+
     this.initializedConversations.set(socket, conversationService);
   }
 
-  @SubscribeMessage(InputEvent.initialization)
+  @SubscribeMessage(ConversationInputEvent.initialization)
   handleInitialization(@ConnectedSocket() socket: WebSocket): Observable<ConversationEventUnion> {
     const conversationService = this.initializedConversations.get(socket)!;
     return conversationService.initConnection();
   }
 
-  @SubscribeMessage(InputEvent.conversationStart)
+  @SubscribeMessage(ConversationInputEvent.conversationStart)
   handleConversationStart(
     @ConnectedSocket() socket: WebSocket
   ): Observable<ConversationStartEvent> {
@@ -63,7 +71,7 @@ export class ConversationGateway
     return conversationService.startConversation();
   }
 
-  @SubscribeMessage(InputEvent.message)
+  @SubscribeMessage(ConversationInputEvent.message)
   handleMessage(
     @ConnectedSocket() socket: WebSocket,
     @MessageBody() { messageReceivers, messageContent }: MessageInputPayload
@@ -75,13 +83,15 @@ export class ConversationGateway
     });
   }
 
-  @SubscribeMessage(InputEvent.conversationEnd)
+  @SubscribeMessage(ConversationInputEvent.conversationEnd)
   handleConversationStop(@ConnectedSocket() socket: WebSocket): Observable<ConversationEndEvent> {
     const conversationService = this.initializedConversations.get(socket)!;
     return conversationService.endConversation();
   }
 
   handleDisconnect(socket: WebSocket): void {
+    super.handleDisconnect(socket);
+
     const conversationService = this.initializedConversations.get(socket)!;
 
     conversationService.destroyConnection();

@@ -2,3 +2,6 @@ PORT=3000
 WS_PORT=3001
 IP="127.0.0.1"
 ALLOWED_DOMAINS="http://localhost:4200"
+WS_API_URL="wss://server.6obcy.pl:7001/6eio/?EIO=3&transport=websocket"
+PING_TIMEOUT=45000
+PING_INTERVAL=20000

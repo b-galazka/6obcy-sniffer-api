@@ -24,4 +24,12 @@ export class AppConfigService {
   getWsApiUrl(): string {
     return this.configService.get<string>('WS_API_URL') || '';
   }
+
+  getPingTimeout(): number {
+    return +(this.configService.get<string>('PING_TIMEOUT') || 45000);
+  }
+
+  getPingInterval(): number {
+    return +(this.configService.get<string>('PING_INTERVAL') || 20000);
+  }
 }

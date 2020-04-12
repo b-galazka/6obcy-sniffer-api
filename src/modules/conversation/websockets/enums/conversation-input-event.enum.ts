@@ -1,4 +1,4 @@
-export enum InputEvent {
+export enum ConversationInputEvent {
   initialization = 'initialization',
   conversationStart = 'conversationStart',
   conversationEnd = 'conversationEnd',
