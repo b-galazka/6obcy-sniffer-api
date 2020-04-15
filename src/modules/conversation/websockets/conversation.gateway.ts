@@ -14,6 +14,7 @@ import WebSocket = require('ws');
 import {
   AppConfigService,
   BaseGateway,
+  BaseOutputEvent,
   SanitizeRequestBodyPipe,
   WebSocketExceptionFilter,
   WebSocketValidationPipe
@@ -55,6 +56,11 @@ export class ConversationGateway extends BaseGateway
     const conversationService = this.conversationServiceFactory.constructService();
 
     this.initializedConversations.set(socket, conversationService);
+    this.sendConnectionSuccessEvent(socket);
+  }
+
+  private sendConnectionSuccessEvent(socket: WebSocket): void {
+    socket.send(JSON.stringify({ event: BaseOutputEvent.connectionSuccess }));
   }
 
   @SubscribeMessage(ConversationInputEvent.initialization)

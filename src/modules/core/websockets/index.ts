@@ -8,3 +8,5 @@ export * from './pipes/websocket-validation.pipe';
 export * from './adapters/websocket.adapter';
 export * from './services/websocket-connection.factory';
 export * from './gateways/base.gateway';
+export * from './enums/base-output-event.enum';
+export * from './enums/base-input-event.enum';

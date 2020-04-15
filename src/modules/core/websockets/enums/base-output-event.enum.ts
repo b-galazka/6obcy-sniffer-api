@@ -1,3 +1,4 @@
 export enum BaseOutputEvent {
-  pong = 'pong'
+  pong = 'pong',
+  connectionSuccess = 'connectionSuccess'
 }
