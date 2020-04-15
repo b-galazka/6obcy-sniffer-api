@@ -1,11 +1,12 @@
 import { Trim } from 'class-sanitizer';
-import { IsArray, IsEnum, IsString, MinLength } from 'class-validator';
+import { ArrayUnique, IsArray, IsEnum, IsString, MinLength } from 'class-validator';
 
 import { Stranger } from '../../core';
 
 export class MessageInputPayload {
   @IsArray()
   @IsEnum(Stranger, { each: true })
+  @ArrayUnique()
   messageReceivers: Stranger[];
 
   @Trim()
