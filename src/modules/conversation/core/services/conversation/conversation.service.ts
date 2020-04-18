@@ -4,7 +4,7 @@ import { catchError, filter, map, mapTo, skip, take, takeUntil, tap } from 'rxjs
 
 import { ConversationEvent } from '../../enums/conversation-event.enum';
 import { Stranger } from '../../enums/stranger.enum';
-import { UnknownConnectionError } from '../../exceptions/unknown-connection-error.exception';
+import { UnknownConnectionErrorException } from '../../exceptions/unknown-connection-error.exception';
 import { StrangerEventUnion } from '../stranger/events/stranger-event-union.type';
 import { StrangerService } from '../stranger/stranger.service';
 import { ConversationEventUnion } from './events/conversation-event-union.type';
@@ -47,7 +47,7 @@ export class ConversationService {
       .pipe(
         map(event => this.mapStrangerEventToConversationEvent(stranger, event)),
         filter(event => !!event),
-        catchError((event: UnknownConnectionError) => {
+        catchError((event: UnknownConnectionErrorException) => {
           this.destroyEventReceiverConnection(stranger);
           return throwError(event);
         })

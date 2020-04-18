@@ -1,4 +1,10 @@
-import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
+import {
+  CallHandler,
+  ExecutionContext,
+  Injectable,
+  NestInterceptor,
+  ServiceUnavailableException
+} from '@nestjs/common';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
@@ -9,7 +15,8 @@ import {
   ConnectionNotInitializedException,
   ConversationAlreadyStartedException,
   ConversationEventUnion,
-  ConversationNotStartedException
+  ConversationNotStartedException,
+  UnknownConnectionErrorException
 } from '../../core';
 
 @Injectable()
@@ -34,6 +41,12 @@ export class ConversationExceptionInterceptor implements NestInterceptor {
 
     if (isForbiddenException) {
       return new ForbiddenWebSocketException(exception.message);
+    }
+
+    const isUnknownConnectionErrorException = exception instanceof UnknownConnectionErrorException;
+
+    if (isUnknownConnectionErrorException) {
+      return new ServiceUnavailableException();
     }
 
     return exception;

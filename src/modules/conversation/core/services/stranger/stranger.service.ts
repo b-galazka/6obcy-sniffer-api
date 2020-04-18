@@ -28,7 +28,7 @@ import { ConnectionAlreadyInitializedException } from '../../exceptions/connecti
 import { ConnectionNotInitializedException } from '../../exceptions/connection-not-initialized.exception';
 import { ConversationAlreadyStartedException } from '../../exceptions/conversation-already-started.exception';
 import { ConversationNotStartedException } from '../../exceptions/conversation-not-started.exception';
-import { UnknownConnectionError } from '../../exceptions/unknown-connection-error.exception';
+import { UnknownConnectionErrorException } from '../../exceptions/unknown-connection-error.exception';
 import { ConnectionInitSuccessStrangerEvent } from './events/events/connection-init-success-stranger-event';
 import { ConversationEndStrangerEvent } from './events/events/conversation-end-stranger-event';
 import { ConversationStartStrangerEvent } from './events/events/conversation-start-stranger-event';
@@ -191,14 +191,14 @@ export class StrangerService {
     this.webSocket$!.complete();
     this.makeConnectionDestroyCleanUp();
 
-    return throwError(new UnknownConnectionError());
+    return throwError(new UnknownConnectionErrorException());
   }
 
   private initConnectionDestroyHandling(): Observable<never> {
     return of(null).pipe(
       tap(() => this.makeConnectionDestroyCleanUp()),
       filter(() => !this.isConnectionDestroyedByClient),
-      switchMapTo(throwError(new UnknownConnectionError()))
+      switchMapTo(throwError(new UnknownConnectionErrorException()))
     );
   }
 

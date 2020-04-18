@@ -3,6 +3,7 @@ export * from './exceptions/bad-request-websocket.exception';
 export * from './exceptions/base-websocket.exception';
 export * from './exceptions/forbidden-websocket.exception';
 export * from './exceptions/internal-server-error-websocket.exception';
+export * from './exceptions/service-unavailable.exception';
 export * from './filters/websocket-exception.filter';
 export * from './pipes/websocket-validation.pipe';
 export * from './adapters/websocket.adapter';

@@ -1,4 +1,4 @@
-export class UnknownConnectionError extends Error {
+export class UnknownConnectionErrorException extends Error {
   constructor() {
     super('Unknown connection error');
   }
