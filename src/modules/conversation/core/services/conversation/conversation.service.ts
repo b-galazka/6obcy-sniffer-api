@@ -1,6 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { forkJoin, merge, Observable, Subject, throwError } from 'rxjs';
-import { catchError, filter, map, mapTo, skip, take, takeUntil, tap } from 'rxjs/operators';
+import {
+  catchError,
+  distinctUntilChanged,
+  filter,
+  map,
+  mapTo,
+  skip,
+  take,
+  takeUntil,
+  tap
+} from 'rxjs/operators';
 
 import { ConversationEvent } from '../../enums/conversation-event.enum';
 import { Stranger } from '../../enums/stranger.enum';
@@ -33,7 +43,7 @@ export class ConversationService {
 
     return merge(
       this.handleConnectionInitSuccessEvent(firstConversationEvents$, secondConversationEvents$),
-      this.filterStatisticsEvents(firstConversationEvents$),
+      this.filterUsersCountEvents(firstConversationEvents$, secondConversationEvents$),
       this.filterConversationEvents(firstConversationEvents$),
       this.filterConversationEvents(secondConversationEvents$),
       this.initEventsForwarding(firstConversationEvents$),
@@ -113,12 +123,23 @@ export class ConversationService {
     ]).pipe(mapTo(new ConnectionInitSuccessEvent()));
   }
 
-  private filterStatisticsEvents(
-    conversationEvents$: Observable<ConversationEventUnion>
+  private filterUsersCountEvents(
+    firstConversationEvents$: Observable<ConversationEventUnion>,
+    secondConversationEvents$: Observable<ConversationEventUnion>
   ): Observable<UsersCountEvent> {
-    return conversationEvents$.pipe(filter(event => this.isUsersCountEvent(event))) as Observable<
-      UsersCountEvent
-    >;
+    return merge(firstConversationEvents$, secondConversationEvents$).pipe(
+      filter(event => this.isUsersCountEvent(event)),
+      distinctUntilChanged((prevEvent, currentEvent) =>
+        this.hasUsersCountChanged(prevEvent as UsersCountEvent, currentEvent as UsersCountEvent)
+      )
+    ) as Observable<UsersCountEvent>;
+  }
+
+  private hasUsersCountChanged(
+    prevEvent: UsersCountEvent | null,
+    currentEvent: UsersCountEvent
+  ): boolean {
+    return !prevEvent || prevEvent.data.usersCount !== currentEvent.data.usersCount;
   }
 
   private filterConversationEvents(
