@@ -139,7 +139,7 @@ export class ConversationService {
     prevEvent: UsersCountEvent | null,
     currentEvent: UsersCountEvent
   ): boolean {
-    return !prevEvent || prevEvent.data.usersCount !== currentEvent.data.usersCount;
+    return !!prevEvent && prevEvent.data.usersCount === currentEvent.data.usersCount;
   }
 
   private filterConversationEvents(
