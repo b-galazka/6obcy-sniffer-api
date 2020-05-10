@@ -4,13 +4,17 @@ import WebSocket = require('ws');
 
 @Injectable()
 export class WebSocketConnectionFactory {
-  constructWebSocketConnection(url: string): WebSocketSubject<string> {
+  constructWebSocketConnection(wsUrl: string, wsOriginUrl: string = ''): WebSocketSubject<string> {
     return webSocket({
-      url,
+      url: wsUrl,
       deserializer: event => event.data,
       serializer: payload => payload,
-      // TODO: fix typing
-      WebSocketCtor: WebSocket as any
+      // ugly workaround to provide origin (not supported by rxjs webSocket by default)
+      WebSocketCtor: class extends WebSocket {
+        constructor(url: string, protocols?: string | string[]) {
+          super(url, protocols, { origin: wsOriginUrl });
+        }
+      } as any
     });
   }
 }

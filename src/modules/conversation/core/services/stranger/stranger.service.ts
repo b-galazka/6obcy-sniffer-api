@@ -82,7 +82,8 @@ export class StrangerService {
     this.isConnectionDestroyedByClient = false;
 
     this.webSocket$ = this.webSocketConnectionFactory.constructWebSocketConnection(
-      this.appConfigService.getWsApiUrl()
+      this.appConfigService.getWsApiUrl(),
+      this.appConfigService.getWsOriginUrl()
     );
 
     this.webSocketMessages$ = this.webSocket$.pipe(map(tryToParseStrToObj));
