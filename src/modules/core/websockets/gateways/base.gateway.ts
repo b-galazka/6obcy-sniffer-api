@@ -28,8 +28,8 @@ export abstract class BaseGateway
   implements OnGatewayConnection<WebSocket>, OnGatewayDisconnect<WebSocket> {
   private readonly pingInterval = this.appConfigService.getPingInterval();
   private readonly pingTimeout = this.appConfigService.getPingTimeout();
-  private readonly heartbeats = new Map<WebSocket, BehaviorSubject<number>>();
-  private readonly heartbeatsIntervals = new Map<WebSocket, Observable<number>>();
+  private readonly heartbeats = new WeakMap<WebSocket, BehaviorSubject<number>>();
+  private readonly heartbeatsIntervals = new WeakMap<WebSocket, Observable<number>>();
 
   constructor(private readonly appConfigService: AppConfigService) {}
 
