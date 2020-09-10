@@ -39,7 +39,8 @@ import { MessageInputPayload } from './payloads/message-input.payload';
 )
 @UseInterceptors(new ConversationExceptionInterceptor())
 @UseFilters(new WebSocketExceptionFilter(new Logger('ConversationGateway')))
-export class ConversationGateway extends BaseGateway
+export class ConversationGateway
+  extends BaseGateway
   implements OnGatewayConnection<WebSocket>, OnGatewayDisconnect<WebSocket> {
   private readonly initializedConversations = new WeakMap<WebSocket, ConversationService>();
 

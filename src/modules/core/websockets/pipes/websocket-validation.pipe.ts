@@ -1,4 +1,5 @@
 import { ArgumentMetadata, BadRequestException, Injectable, ValidationPipe } from '@nestjs/common';
+import { IBadRequestExceptionResponose } from '../../shared/interfaces/bad-request-exception-response.interface';
 
 import { BadRequestWebSocketException } from '../exceptions/bad-request-websocket.exception';
 
@@ -8,9 +9,11 @@ export class WebSocketValidationPipe extends ValidationPipe {
     try {
       return await super.transform(value, metadata);
     } catch (err) {
-      const { message }: BadRequestException = err;
+      const {
+        message
+      } = (err as BadRequestException).getResponse() as IBadRequestExceptionResponose;
 
-      throw new BadRequestWebSocketException(message.message);
+      throw new BadRequestWebSocketException(message.join('; '));
     }
   }
 }
