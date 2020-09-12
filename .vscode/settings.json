@@ -8,9 +8,10 @@
   "files.trimTrailingWhitespace": true,
   "typescript.tsdk": "./node_modules/typescript/lib",
   "tslint.packageManager": "yarn",
-  "tslint.autoFixOnSave": true,
-  "tslint.run": "onType",
-  "eslint.validate": ["typescript"],
+  "editor.codeActionsOnSave": {
+    "source.fixAll.tslint": true
+  },
   // TODO: find a way to add imports aliases like @core etc
-  "typescript.preferences.importModuleSpecifier": "relative"
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "files.eol": "\n"
 }
