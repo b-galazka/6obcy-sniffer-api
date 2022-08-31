@@ -3,7 +3,7 @@ version: 2.1
 # reusable blocks
 defaults: &defaults
   docker:
-    - image: circleci/node:12.13
+    - image: cimg/node:16.16
 
   working_directory: ~/project
 
