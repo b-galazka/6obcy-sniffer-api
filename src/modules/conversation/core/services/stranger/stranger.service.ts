@@ -88,9 +88,9 @@ export class StrangerService {
 
     this.webSocketMessages$ = this.webSocket$.pipe(map(tryToParseStrToObj));
 
-    this.webSocketObjectMessages$ = this.webSocketMessages$.pipe(filter(isObject)) as Observable<
-      object
-    >;
+    this.webSocketObjectMessages$ = this.webSocketMessages$.pipe(
+      filter(isObject)
+    ) as Observable<object>;
 
     return concat(this.initWebSocketMessagesHandling(), this.initConnectionDestroyHandling()).pipe(
       share()
@@ -236,9 +236,7 @@ export class StrangerService {
       : this.filterFirstConversationStartIncomingMessage().pipe(mapTo(undefined));
   }
 
-  private filterFirstConversationStartIncomingMessage(): Observable<
-    IConversationStartIncomingMessage
-  > {
+  private filterFirstConversationStartIncomingMessage(): Observable<IConversationStartIncomingMessage> {
     return this.webSocketObjectMessages$!.pipe(
       filter(message => this.isConversationStartIncomingMessage(message as IncomingMessageUnion)),
       take(1)

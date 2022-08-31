@@ -3,7 +3,8 @@ import { IConversationEvent } from '../../../../interfaces/conversation-event.in
 import { IStrangerMessageStrangerEventPayload } from '../payloads/stranger-message-stranger-event-payload.interface';
 
 export class StrangerMessageStrangerEvent
-  implements IConversationEvent<IStrangerMessageStrangerEventPayload> {
+  implements IConversationEvent<IStrangerMessageStrangerEventPayload>
+{
   readonly event = ConversationEvent.strangerMessage;
   constructor(readonly data: IStrangerMessageStrangerEventPayload) {}
 }

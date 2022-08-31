@@ -3,7 +3,8 @@ import { IConversationEvent } from '../../../../interfaces/conversation-event.in
 import { IProhibitedMessageStrangerEventPayload } from '../payloads/prohibited-message-stranger-event-payload.interface';
 
 export class ProhibitedMessageStrangerEvent
-  implements IConversationEvent<IProhibitedMessageStrangerEventPayload> {
+  implements IConversationEvent<IProhibitedMessageStrangerEventPayload>
+{
   readonly event = ConversationEvent.prohibitedMessage;
   constructor(readonly data: IProhibitedMessageStrangerEventPayload) {}
 }

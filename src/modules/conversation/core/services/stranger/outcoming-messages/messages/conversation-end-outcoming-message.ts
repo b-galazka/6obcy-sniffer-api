@@ -3,7 +3,8 @@ import { IOutcomingMessage } from '../outcoming-message.interface';
 import { IConversationEndOutcomingMessagePayload } from '../payloads/conversation-end-outcoming-message-payload.interface';
 
 export class ConversationEndOutcomingMessage
-  implements IOutcomingMessage<IConversationEndOutcomingMessagePayload> {
+  implements IOutcomingMessage<IConversationEndOutcomingMessagePayload>
+{
   readonly ev_name = OutcomingMessage.conversationEnd;
   readonly ev_data: IConversationEndOutcomingMessagePayload;
 

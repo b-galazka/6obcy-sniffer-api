@@ -41,7 +41,8 @@ import { MessageInputPayload } from './payloads/message-input.payload';
 @UseFilters(new WebSocketExceptionFilter(new Logger('ConversationGateway')))
 export class ConversationGateway
   extends BaseGateway
-  implements OnGatewayConnection<WebSocket>, OnGatewayDisconnect<WebSocket> {
+  implements OnGatewayConnection<WebSocket>, OnGatewayDisconnect<WebSocket>
+{
   private readonly initializedConversations = new WeakMap<WebSocket, ConversationService>();
 
   constructor(

@@ -3,7 +3,8 @@ import { IConversationEvent } from '../../../../interfaces/conversation-event.in
 import { IUsersCountStrangerEventPayload } from '../payloads/users-count-stranger-event-payload.interface';
 
 export class UsersCountStrangerEvent
-  implements IConversationEvent<IUsersCountStrangerEventPayload> {
+  implements IConversationEvent<IUsersCountStrangerEventPayload>
+{
   readonly event = ConversationEvent.usersCount;
   constructor(readonly data: IUsersCountStrangerEventPayload) {}
 }

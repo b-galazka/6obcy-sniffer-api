@@ -25,7 +25,8 @@ import { BaseInputEvent } from '../enums/base-input-event.enum';
 import { BaseOutputEvent } from '../enums/base-output-event.enum';
 
 export abstract class BaseGateway
-  implements OnGatewayConnection<WebSocket>, OnGatewayDisconnect<WebSocket> {
+  implements OnGatewayConnection<WebSocket>, OnGatewayDisconnect<WebSocket>
+{
   private readonly pingInterval = this.appConfigService.getPingInterval();
   private readonly pingTimeout = this.appConfigService.getPingTimeout();
   private readonly heartbeats = new WeakMap<WebSocket, BehaviorSubject<number>>();

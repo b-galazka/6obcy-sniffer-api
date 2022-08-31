@@ -9,9 +9,9 @@ export class WebSocketValidationPipe extends ValidationPipe {
     try {
       return await super.transform(value, metadata);
     } catch (err) {
-      const {
-        message
-      } = (err as BadRequestException).getResponse() as IBadRequestExceptionResponose;
+      const { message } = (
+        err as BadRequestException
+      ).getResponse() as IBadRequestExceptionResponose;
 
       throw new BadRequestWebSocketException(message.join('; '));
     }

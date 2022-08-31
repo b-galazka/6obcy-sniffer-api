@@ -74,8 +74,8 @@ export class ConversationService {
     notifier: Stranger,
     event: StrangerEventUnion
   ): ConversationEventUnion | null {
-    const isConversationWithReceiverStarted = this.getEventReceiverStrangerService(notifier)!
-      .isConversationStarted;
+    const isConversationWithReceiverStarted =
+      this.getEventReceiverStrangerService(notifier)!.isConversationStarted;
 
     switch (event.event) {
       case ConversationEvent.connectionInitSuccess:
